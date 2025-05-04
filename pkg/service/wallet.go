@@ -8,17 +8,80 @@ import (
 	"production_wallet_back/models"
 	"production_wallet_back/pkg/cache"
 	"production_wallet_back/pkg/repository"
+	"production_wallet_back/pkg/tronclient"
 	"strings"
 )
 
 type WalletService struct {
-	repos repository.Wallet
+	repos      repository.Wallet
+	tronClient *tronclient.TronHTTPClient
 }
 
-func NewWalletService(repos repository.Wallet) *WalletService {
+func NewWalletService(repos repository.Wallet, tronclient *tronclient.TronHTTPClient) *WalletService {
 	return &WalletService{
-		repos: repos,
+		repos:      repos,
+		tronClient: tronclient,
 	}
+}
+
+func (s *WalletService) CreateWallet(userID int64, privKey, address string) (int64, error) {
+	return s.repos.CreateWallet(userID, privKey, address)
+}
+
+func (s *WalletService) InitBalance(walletID int64, tokenSymbol string) error {
+	return s.repos.InitBalance(walletID, tokenSymbol)
+}
+
+func (s *WalletService) GetBalance(telegramId int64) ([]models.Balance, error) {
+	return s.repos.GetBalances(telegramId)
+}
+func (s *WalletService) GetUSDTBalance(address string) (float64, error) {
+	return s.tronClient.GetUSDTBalance(address)
+}
+func (s *WalletService) Deposit(telegramId int64, tokenSymbol string, amount float64) error {
+	return s.repos.Deposit(telegramId, tokenSymbol, amount)
+}
+
+func (s *WalletService) Withdraw(privKey string, toAddress string, amount float64) (string, error) {
+	txID, err := s.tronClient.SendUSDT(privKey, toAddress, amount)
+	if err != nil {
+		return "", err
+	}
+	return txID, nil
+}
+
+//func (s *WalletService) Withdraw(telegramId int64, ToAddress string, tokenSymbol string, amount float64) error {
+//	balance, err := s.repos.GetBalances(telegramId)
+//	logrus.Infof(fmt.Sprintf("balances %+v", balance))
+//	if err != nil {
+//		return err
+//	}
+//	if balance[0].Amount < amount {
+//		return errors.New("insufficient funds")
+//	}
+//	err = s.repos.WithdrawBalance(balance[0].WalletID, amount, tokenSymbol)
+//	if err != nil {
+//		return err
+//	}
+//	err = s.repos.CreateTransaction(balance[0].WalletID, ToAddress, tokenSymbol, amount, "pending", "")
+//	if err != nil {
+//		return errors.New(fmt.Sprintf("Failed to save transaction: %s", err))
+//	}
+//	return nil
+//}
+
+func (s *WalletService) GetTransactions(telegramId int64) ([]models.Transaction, error) {
+	return s.repos.GetTransactions(telegramId)
+}
+
+func (s *WalletService) Pay(telegramId int64, tokenSymbol string, amount float64) error {
+
+	err := s.repos.Pay(telegramId, tokenSymbol, amount)
+	if err != nil {
+		return err
+	}
+	// Далле логтка для оплаты qr и транзакции в сети
+	return err
 }
 
 func (s *WalletService) Convert(convertReq models.ConvertRequest) (error, models.ConvertResponse) {
@@ -49,7 +112,7 @@ func (s *WalletService) Convert(convertReq models.ConvertRequest) (error, models
 	log.Println("Запрос к API CoinGecko:", url)
 
 	resp, err := client.R().
-		SetHeader("x-cg-pro-api-key", "CG-wmi7LpR5B84uad7kPFE1knYa").
+		SetHeader("x-cg-demo-api-key", "CG-wmi7LpR5B84uad7kPFE1knYa").
 		SetHeader("Accept", "application/json").
 		SetResult(map[string]map[string]float64{}).
 		Get(url)

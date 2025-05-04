@@ -1,10 +1,13 @@
 package models
 
+import "time"
+
 type Wallet struct {
-	Id         int64  `json:"id" db:"id"`
-	UserId     int64  `json:"user_id" db:"user_id"`
-	PrivateKey string `json:"private_key" db:"private_key"`
-	PublicKey  string `json:"public_key" db:"public_key"`
+	ID         int64     `db:"id" json:"id"`
+	UserID     int64     `db:"user_id" json:"user_id"`
+	PrivateKey string    `db:"private_key" json:"private_key"`
+	Address    string    `db:"address" json:"address"`
+	CreatedAt  time.Time `db:"created_at" json:"created_at"`
 }
 
 type ConvertRequest struct {

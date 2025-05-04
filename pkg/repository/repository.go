@@ -5,8 +5,19 @@ import (
 	"production_wallet_back/models"
 )
 
-type Authorization interface{}
+type Authorization interface {
+	GetUserByTelegramId(int64) (models.User, error)
+	CreateUser(models.User) (int64, error)
+}
 type Wallet interface {
+	CreateWallet(userID int64, privKey, address string) (int64, error)
+	InitBalance(walletID int64, tokenSymbol string) error
+	GetBalances(telegramID int64) ([]models.Balance, error)
+	Deposit(telegramId int64, tokenSymbol string, amount float64) error
+	WithdrawBalance(walletID int64, amount float64, tokenSymbol string) error
+	CreateTransaction(walletID int64, toId string, token string, amount float64, status string, tx_hash string) error
+	GetTransactions(telegramId int64) ([]models.Transaction, error)
+	Pay(telegramId int64, tokenSymbol string, amount float64) error
 	Convert(models.ConvertRequest) (error, models.ConvertResponse)
 }
 
@@ -17,6 +28,7 @@ type Repository struct {
 
 func NewRepository(db *sqlx.DB) *Repository {
 	return &Repository{
-		Wallet: NewWalletPostgres(db),
+		Authorization: NewAuthPostgres(db),
+		Wallet:        NewWalletPostgres(db),
 	}
 }
