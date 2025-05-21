@@ -9,7 +9,10 @@ type Wallet struct {
 	Address    string    `db:"address" json:"address"`
 	CreatedAt  time.Time `db:"created_at" json:"created_at"`
 }
-
+type WalletResponce struct {
+	WalletID int64  `json:"id" db:"id"`
+	Address  string `json:"address" db:"address"`
+}
 type ConvertRequest struct {
 	Amount float64 `json:"amount"` // сумма
 	From   string  `json:"from"`   // исходная валюта, например: "RUB"

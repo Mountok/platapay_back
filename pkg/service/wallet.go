@@ -3,13 +3,14 @@ package service
 import (
 	"errors"
 	"fmt"
-	"github.com/go-resty/resty/v2"
 	"log"
 	"production_wallet_back/models"
 	"production_wallet_back/pkg/cache"
 	"production_wallet_back/pkg/repository"
 	"production_wallet_back/pkg/tronclient"
 	"strings"
+
+	"github.com/go-resty/resty/v2"
 )
 
 type WalletService struct {
@@ -32,6 +33,10 @@ func (s *WalletService) InitBalance(walletID int64, tokenSymbol string) error {
 	return s.repos.InitBalance(walletID, tokenSymbol)
 }
 
+func (s *WalletService) GetWallet(telegramId int64) (models.WalletResponce, error) {
+	return s.repos.GetWallet(telegramId)
+}
+
 func (s *WalletService) GetBalance(telegramId int64) ([]models.Balance, error) {
 	return s.repos.GetBalances(telegramId)
 }
@@ -43,9 +48,22 @@ func (s *WalletService) Deposit(telegramId int64, tokenSymbol string, amount flo
 }
 
 func (s *WalletService) Withdraw(privKey string, toAddress string, amount float64) (string, error) {
+	// Используем тот же контракт USDT, что и в клиенте
 	txID, err := s.tronClient.SendUSDT(privKey, toAddress, amount)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to send USDT: %v", err)
+	}
+	return txID, nil
+}
+
+// WithdrawWithContract позволяет указать адрес контракта USDT
+func (s *WalletService) WithdrawWithContract(privKey string, toAddress string, amount float64, contractAddress string) (string, error) {
+	// Создаем временный клиент с указанным контрактом
+	tempClient := tronclient.NewTronHTTPClient(s.GetAPIKey(), contractAddress)
+
+	txID, err := tempClient.SendUSDT(privKey, toAddress, amount)
+	if err != nil {
+		return "", fmt.Errorf("failed to send USDT: %v", err)
 	}
 	return txID, nil
 }
@@ -155,4 +173,12 @@ func currencyID(symbol string) string {
 	default:
 		return strings.ToLower(symbol)
 	}
+}
+
+func (s *WalletService) ApproveUSDT(privKey string, spenderAddress string, amount float64) (string, error) {
+	return s.tronClient.ApproveUSDT(privKey, spenderAddress, amount)
+}
+
+func (s *WalletService) GetAPIKey() string {
+	return s.tronClient.APIKey
 }

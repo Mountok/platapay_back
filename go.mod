@@ -12,6 +12,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/mr-tron/base58 v1.2.0
 	github.com/okx/go-wallet-sdk/coins/tron v0.0.0-20250327101326-d12c7f67b977
+	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.20.1
 )

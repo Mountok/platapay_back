@@ -11,6 +11,7 @@ type Authorization interface {
 }
 type Wallet interface {
 	CreateWallet(userID int64, privKey, address string) (int64, error)
+	GetWallet(telegramId int64) (models.WalletResponce, error)
 	InitBalance(walletID int64, tokenSymbol string) error
 	GetBalances(telegramID int64) ([]models.Balance, error)
 	Deposit(telegramId int64, tokenSymbol string, amount float64) error

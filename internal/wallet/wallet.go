@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/mr-tron/base58"
@@ -57,4 +58,33 @@ func generateTronAddress(pub *ecdsa.PublicKey) (string, error) {
 	full := append(tronAddr, checkSum...)
 
 	return base58.Encode(full), nil
+}
+
+// GetTronAddressFromPrivKey получает TRON-адрес из приватного ключа
+func GetTronAddressFromPrivKey(privKeyHex string) (string, string, *ecdsa.PrivateKey, error) {
+	privBytes, err := hex.DecodeString(privKeyHex)
+	if err != nil {
+		return "", "", nil, fmt.Errorf("failed to decode private key hex: %v", err)
+	}
+
+	privKey, err := crypto.ToECDSA(privBytes)
+	if err != nil {
+		return "", "", nil, fmt.Errorf("failed to convert to ECDSA: %v", err)
+	}
+
+	pubKey := privKey.PublicKey
+	pubBytes := crypto.FromECDSAPub(&pubKey)
+	pubKeyHash := crypto.Keccak256(pubBytes[1:])
+
+	addr := append([]byte{0x41}, pubKeyHash[12:]...)
+
+	// Calculate checksum
+	first := sha256.Sum256(addr)
+	second := sha256.Sum256(first[:])
+	checksum := second[:4]
+
+	full := append(addr, checksum...)
+	base58Addr := base58.Encode(full)
+
+	return base58Addr, hex.EncodeToString(addr), privKey, nil
 }

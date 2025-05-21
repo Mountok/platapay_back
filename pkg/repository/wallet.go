@@ -27,6 +27,17 @@ func (r *WalletPostgres) CreateWallet(userID int64, privKey, address string) (in
 	return walletId, err
 }
 
+func (r *WalletPostgres) GetWallet(telegramId int64) (models.WalletResponce, error) {
+	log.Printf("Getting wallet: telegramId=%d", telegramId)
+	var wallet models.WalletResponce
+	query := `SELECT id, address FROM wallets WHERE user_id = $1`
+	err := r.db.Get(&wallet, query, telegramId)
+	if err != nil {
+		return wallet, errors.New(fmt.Sprintf("Error getting wallet: %s", err))
+	}
+	return wallet, nil
+}
+
 func (r *WalletPostgres) InitBalance(walletID int64, tokenSymbol string) error {
 	query := `INSERT INTO balances (wallet_id, token_symbol) VALUES ($1, $2)`
 	_, err := r.db.Exec(query, walletID, tokenSymbol)
