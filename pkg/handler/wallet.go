@@ -7,6 +7,7 @@ import (
 	wallet2 "production_wallet_back/internal/wallet"
 	"production_wallet_back/models"
 	"production_wallet_back/pkg/tronclient"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -176,10 +177,16 @@ func (h *Handler) Deposit(c *gin.Context) {
 
 // Конвертация валюты (RUB --> USDT ). Надо передать в теле запроса {amount:int,from:int,to:int}
 func (h *Handler) Convert(c *gin.Context) {
+	_, err := GetTelegramId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid telegram_id")
+		return
+	}
 	var req models.ConvertRequest
 	if err := c.BindJSON(&req); err != nil {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
+
 	}
 
 	err, res := h.service.Wallet.Convert(req)
@@ -187,9 +194,112 @@ func (h *Handler) Convert(c *gin.Context) {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-
 	wrapOkJSON(c, map[string]interface{}{
 		"data": res,
+	})
+}
+
+func (h *Handler) CreateOrder(c *gin.Context) {
+	telegramId, err := GetTelegramId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid telegram_id")
+		return
+	}
+	var req models.OrderCreateRequest
+	if err := c.BindJSON(&req); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	orderId, err := h.service.Wallet.CreateOrder(models.OrderQR{
+		TelegramId: telegramId,
+		QRCode:     req.QRLink,
+		Summa:      req.Amount,
+		Crypto:     req.Crypto,
+		IsPaid:     false,
+	})
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	wrapOkJSON(c, map[string]interface{}{
+		"data":     "order created successfully",
+		"order_id": orderId,
+	})
+
+}
+func (h *Handler) PayQR(c *gin.Context) {
+	logrus.Infof("PayQR")
+	idString := c.Param("id")
+	orderId, err := strconv.Atoi(idString)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid order_id")
+		return
+	}
+	logrus.Infof("order id: %d", orderId)
+
+	status, err := h.service.Wallet.PayQR(orderId)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	wrapOkJSON(c, map[string]interface{}{
+		"id":     orderId,
+		"status": status,
+	})
+}
+
+func (h *Handler) Orders(c *gin.Context) {
+
+	orders, err := h.service.Wallet.GetOrders()
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	wrapOkJSON(c, map[string]interface{}{
+		"data": orders,
+	})
+}
+func (h *Handler) OrdersHistory(c *gin.Context) {
+	telegramId, err := GetTelegramId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid telegram_id")
+		return
+	}
+
+	logrus.Infof("Getting orders history for user with id: %d.", telegramId)
+
+	orders, err := h.service.Wallet.OrdersHistory(telegramId)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	wrapOkJSON(c, map[string]interface{}{
+		"data": orders,
+	})
+
+}
+
+func (h *Handler) StateOrder(c *gin.Context) {
+	_, err := GetTelegramId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid telegram_id")
+		return
+	}
+	idString := c.Param("id")
+	OrderId, err := strconv.Atoi(idString)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid order_id")
+		return
+	}
+
+	state, err := h.service.Wallet.GetOrderState(OrderId)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	wrapOkJSON(c, map[string]interface{}{
+		"data": state,
 	})
 }
 

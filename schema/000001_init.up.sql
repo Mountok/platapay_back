@@ -2,7 +2,7 @@
 CREATE TABLE users
 (
     id            SERIAL PRIMARY KEY,
-    telegram_id   integer UNIQUE NOT NULL, -- ID из Telegram
+    telegram_id   BIGINT UNIQUE NOT NULL, -- ID из Telegram
     username      TEXT,                   -- @username, может быть NULL
     first_name    TEXT,
     last_name     TEXT,
@@ -13,7 +13,7 @@ CREATE TABLE users
 CREATE TABLE wallets
 (
     id          SERIAL PRIMARY KEY,
-    user_id     INTEGER NOT NULL REFERENCES users (telegram_id) ON DELETE CASCADE,
+    user_id     BIGINT NOT NULL REFERENCES users (telegram_id) ON DELETE CASCADE,
     private_key TEXT    NOT NULL,
     address     TEXT    NOT NULL UNIQUE,
     created_at  TIMESTAMP DEFAULT NOW()
@@ -41,6 +41,16 @@ CREATE TABLE transactions
     tx_hash        TEXT,
     status         TEXT      DEFAULT 'confirmed',
     created_at     TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE orderqr
+(
+    id SERIAL PRIMARY KEY,
+    telegram_id BIGINT NOT NULL,
+    qrcode TEXT NOT NULL,
+    summa BIGINT NOT NULL,
+    crypto NUMERIC(30, 6) NOT NULL,
+    ispaid BOOLEAN NOT NULL DEFAULT false
 );
 
 

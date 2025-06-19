@@ -17,6 +17,13 @@ type ConvertRequest struct {
 	Amount float64 `json:"amount"` // сумма
 	From   string  `json:"from"`   // исходная валюта, например: "RUB"
 	To     string  `json:"to"`     // целевая валюта, например: "USDT"
+	QRLink string  `json:"qr_link"`
+}
+
+type OrderCreateRequest struct {
+	Amount float64 `json:"amount"`
+	Crypto float64 `json:"crypto"`
+	QRLink string  `json:"qr_link"`
 }
 
 type ConvertResponse struct {

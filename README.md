@@ -8,7 +8,7 @@
 
 Запуск контейрена:
 
-`docker run --name=wallet_db -e POSTGRES_PASSWORD='qwerty' -p 5437:5432 -d --rm postgres
+`docker run --name=wallet_db -e POSTGRES_PASSWORD='qwerty' -p 5437:5432 -d --rm postgres`
 Убедимся что контейнер запущен:
 
 `docker ps`

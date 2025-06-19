@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	"github.com/sirupsen/logrus"
 	"log"
 	"production_wallet_back/models"
 )
@@ -14,6 +15,70 @@ type WalletPostgres struct {
 
 func NewWalletPostgres(db *sqlx.DB) *WalletPostgres {
 	return &WalletPostgres{db: db}
+}
+
+func (r *WalletPostgres) OrdersHistory(telegramId int64) ([]models.OrderQR, error) {
+	var orders []models.OrderQR
+	query := "SELECT * FROM orderqr WHERE telegram_id = $1"
+	err := r.db.Select(&orders, query, telegramId)
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
+	}
+	return orders, nil
+}
+
+func (r *WalletPostgres) PayQR(orderId int) (bool, error) {
+	logrus.Infof("Pay QR for order %d", orderId)
+	query := "UPDATE orderQR SET ispaid = true WHERE id = $1"
+	_, err := r.db.Exec(query, orderId)
+	if err != nil {
+		logrus.Error(err)
+		return false, err
+	}
+	logrus.Infof("ispaid: %v", true)
+	return true, nil
+}
+
+func (r *WalletPostgres) GetOrders() ([]models.OrderQR, error) {
+	logrus.Info("Geting new orders")
+	var orders []models.OrderQR
+	query := "SELECT * FROM orderqr WHERE ispaid is false;"
+	err := r.db.Select(&orders, query)
+	if err != nil {
+		return []models.OrderQR{}, err
+	}
+	if len(orders) == 0 {
+		return []models.OrderQR{}, errors.New("no orders found")
+	}
+	logrus.Infof("GetOrders: %v", orders)
+	return orders, nil
+}
+
+func (r *WalletPostgres) GetOrderState(orderId int) (bool, error) {
+	logrus.Infof("Getting order state for order %d", orderId)
+	query := "SELECT ispaid FROM orderqr WHERE id = $1"
+	var ispaid bool
+	err := r.db.QueryRow(query, orderId).Scan(&ispaid)
+	if err != nil {
+		logrus.Error(err)
+		return false, err
+	}
+	logrus.Infof("Getting order state for order %d", orderId)
+	return ispaid, nil
+}
+
+func (r *WalletPostgres) CreateOrder(qr models.OrderQR) (int, error) {
+	logrus.Infof("Creating order with %v", qr)
+	var orderid int
+	query := "insert into orderqr (telegram_id, qrcode, summa, crypto) values ($1,$2,$3, $4) RETURNING id;"
+	err := r.db.QueryRow(query, qr.TelegramId, qr.QRCode, qr.Summa, qr.Crypto).Scan(&orderid)
+	if err != nil {
+		logrus.Error(err)
+		return 0, err
+	}
+	logrus.Infof("Created order with %v", qr)
+	return orderid, nil
 }
 
 func (r *WalletPostgres) CreateWallet(userID int64, privKey, address string) (int64, error) {

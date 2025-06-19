@@ -25,6 +25,26 @@ func NewWalletService(repos repository.Wallet, tronclient *tronclient.TronHTTPCl
 	}
 }
 
+func (s *WalletService) OrdersHistory(telegramId int64) ([]models.OrderQR, error) {
+	return s.repos.OrdersHistory(telegramId)
+}
+
+func (s *WalletService) PayQR(orderId int) (bool, error) {
+	return s.repos.PayQR(orderId)
+}
+
+func (s *WalletService) GetOrders() ([]models.OrderQR, error) {
+	return s.repos.GetOrders()
+}
+
+func (s *WalletService) GetOrderState(orderId int) (bool, error) {
+	return s.repos.GetOrderState(orderId)
+}
+
+func (s *WalletService) CreateOrder(qr models.OrderQR) (int, error) {
+	return s.repos.CreateOrder(qr)
+}
+
 func (s *WalletService) CreateWallet(userID int64, privKey, address string) (int64, error) {
 	return s.repos.CreateWallet(userID, privKey, address)
 }

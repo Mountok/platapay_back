@@ -22,7 +22,7 @@ func (h *Handler) InitRoute() *gin.Engine {
 	router := gin.New()
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"https://platapay.ru"},
+		AllowOrigins:     []string{"https://platapay.ru", "http://localhost:5173", "http://172.20.10.4:5173", "http://100.100.0.103"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization", "X-Telegram-ID"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -47,10 +47,22 @@ func (h *Handler) InitRoute() *gin.Engine {
 			wallet.POST("/withdraw/test", h.WithdrawTest)
 			wallet.GET("/transactions", h.GetTransactions)
 			wallet.POST("/convert", h.Convert)
+
+			wallet.GET("/state/order/:id", h.StateOrder)
+			wallet.POST("/create/sbp/order", h.CreateOrder)
+			wallet.GET("/orders/history", h.OrdersHistory)
+
 			wallet.POST("/pay", h.Pay)
 			wallet.POST("/check-balance", h.CheckUSDTBalance)
 			wallet.POST("/check-tx", h.CheckTransactionStatus)
 			wallet.POST("/check-trx-balance", h.CheckTRXBalance)
+
+		}
+
+		admin := api.Group("/admin")
+		{
+			admin.POST("/payqr/:id", h.PayQR)
+			admin.GET("/orders", h.Orders)
 
 		}
 
