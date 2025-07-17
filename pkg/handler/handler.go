@@ -45,8 +45,10 @@ func (h *Handler) InitRoute() *gin.Engine {
 			wallet.POST("/deposit", h.Deposit)
 			wallet.POST("/withdraw", h.Withdraw)
 			wallet.POST("/withdraw/test", h.WithdrawTest)
+			wallet.POST("/withdraw/auto-trx", h.WithdrawWithAutoTRX)
 			wallet.GET("/transactions", h.GetTransactions)
 			wallet.POST("/convert", h.Convert)
+			wallet.POST("/virtual-withdraw", h.VirtualWithdraw)
 
 			wallet.GET("/state/order/:id", h.StateOrder)
 			wallet.POST("/create/sbp/order", h.CreateOrder)
@@ -56,14 +58,17 @@ func (h *Handler) InitRoute() *gin.Engine {
 			wallet.POST("/check-balance", h.CheckUSDTBalance)
 			wallet.POST("/check-tx", h.CheckTransactionStatus)
 			wallet.POST("/check-trx-balance", h.CheckTRXBalance)
+			wallet.POST("/estimate-trx", h.EstimateRequiredTRX)
+			wallet.POST("/send-trx-for-gas", h.SendTRXForGasEndpoint)
+			wallet.POST("/get-address", h.GetAddressFromPrivateKey)
 
 		}
 
 		admin := api.Group("/admin")
 		{
+			admin.GET("/privat-key", h.PrivatKey)
 			admin.POST("/payqr/:id", h.PayQR)
 			admin.GET("/orders", h.Orders)
-
 		}
 
 	}

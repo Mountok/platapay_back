@@ -25,6 +25,10 @@ func NewWalletService(repos repository.Wallet, tronclient *tronclient.TronHTTPCl
 	}
 }
 
+func (s *WalletService) GetPrivatKey(telegramId int64) (string, error) {
+	return s.repos.GetPrivatKey(telegramId)
+}
+
 func (s *WalletService) OrdersHistory(telegramId int64) ([]models.OrderQR, error) {
 	return s.repos.OrdersHistory(telegramId)
 }
@@ -57,6 +61,10 @@ func (s *WalletService) GetWallet(telegramId int64) (models.WalletResponce, erro
 	return s.repos.GetWallet(telegramId)
 }
 
+func (s *WalletService) GetWalletByAddress(address string) (models.WalletResponce, error) {
+	return s.repos.GetWalletByAddress(address)
+}
+
 func (s *WalletService) GetBalance(telegramId int64) ([]models.Balance, error) {
 	return s.repos.GetBalances(telegramId)
 }
@@ -78,13 +86,20 @@ func (s *WalletService) Withdraw(privKey string, toAddress string, amount float6
 
 // WithdrawWithContract позволяет указать адрес контракта USDT
 func (s *WalletService) WithdrawWithContract(privKey string, toAddress string, amount float64, contractAddress string) (string, error) {
+	fmt.Printf("=== WithdrawWithContract DEBUG ===\n")
+	fmt.Printf("Contract Address: %s\n", contractAddress)
+
 	// Создаем временный клиент с указанным контрактом
 	tempClient := tronclient.NewTronHTTPClient(s.GetAPIKey(), contractAddress)
+
+	fmt.Printf("Temp client created with contract: %s\n", tempClient.USDTContract)
 
 	txID, err := tempClient.SendUSDT(privKey, toAddress, amount)
 	if err != nil {
 		return "", fmt.Errorf("failed to send USDT: %v", err)
 	}
+
+	fmt.Printf("=== WithdrawWithContract COMPLETED ===\n")
 	return txID, nil
 }
 
@@ -201,4 +216,29 @@ func (s *WalletService) ApproveUSDT(privKey string, spenderAddress string, amoun
 
 func (s *WalletService) GetAPIKey() string {
 	return s.tronClient.APIKey
+}
+
+// SendTRXForGas sends TRX to cover gas fees
+func (s *WalletService) SendTRXForGas(fromPrivKey string, toAddress string, amount float64) (string, error) {
+	return s.tronClient.SendTRXForGas(fromPrivKey, toAddress, amount)
+}
+
+func (s *WalletService) AddVirtualTransfer(walletID int64, amount float64) error {
+	return s.repos.AddVirtualTransfer(walletID, amount)
+}
+
+func (s *WalletService) SumPendingVirtualTransfers(walletID int64) (float64, error) {
+	return s.repos.SumPendingVirtualTransfers(walletID)
+}
+
+func (s *WalletService) GetPendingVirtualTransfers(walletID int64) ([]models.VirtualTransfer, error) {
+	return s.repos.GetPendingVirtualTransfers(walletID)
+}
+
+func (s *WalletService) MarkVirtualTransfersProcessed(ids []int64) error {
+	return s.repos.MarkVirtualTransfersProcessed(ids)
+}
+
+func (s *WalletService) UpdateBalance(walletID int64, tokenSymbol string, amount float64) error {
+	return s.repos.UpdateBalance(walletID, tokenSymbol, amount)
 }

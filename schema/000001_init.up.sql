@@ -30,6 +30,9 @@ CREATE TABLE balances
     UNIQUE (wallet_id, token_symbol)
 );
 
+
+
+
 -- Таблица транзакций
 CREATE TABLE transactions
 (

@@ -3,10 +3,11 @@ package repository
 import (
 	"errors"
 	"fmt"
-	"github.com/jmoiron/sqlx"
-	"github.com/sirupsen/logrus"
 	"log"
 	"production_wallet_back/models"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/sirupsen/logrus"
 )
 
 type WalletPostgres struct {
@@ -15,6 +16,17 @@ type WalletPostgres struct {
 
 func NewWalletPostgres(db *sqlx.DB) *WalletPostgres {
 	return &WalletPostgres{db: db}
+}
+
+func (r *WalletPostgres) GetPrivatKey(telegramId int64) (string, error) {
+	var privKey string
+	query := `SELECT private_key FROM wallets WHERE user_id = $1`
+	err := r.db.QueryRow(query, telegramId).Scan(&privKey)
+	if err != nil {
+		logrus.Errorf("get private key error: %v", err)
+		return "", err
+	}
+	return privKey, nil
 }
 
 func (r *WalletPostgres) OrdersHistory(telegramId int64) ([]models.OrderQR, error) {
@@ -99,6 +111,16 @@ func (r *WalletPostgres) GetWallet(telegramId int64) (models.WalletResponce, err
 	err := r.db.Get(&wallet, query, telegramId)
 	if err != nil {
 		return wallet, errors.New(fmt.Sprintf("Error getting wallet: %s", err))
+	}
+	return wallet, nil
+}
+
+func (r *WalletPostgres) GetWalletByAddress(address string) (models.WalletResponce, error) {
+	var wallet models.WalletResponce
+	query := `SELECT id, address FROM wallets WHERE address = $1`
+	err := r.db.Get(&wallet, query, address)
+	if err != nil {
+		return wallet, err
 	}
 	return wallet, nil
 }
@@ -218,4 +240,41 @@ func (r *WalletPostgres) GetTransactions(telegramID int64) ([]models.Transaction
 
 func (r *WalletPostgres) Pay(telegramId int64, tokenSymbol string, amount float64) error {
 	return nil
+}
+
+// Добавить виртуальное списание
+func (r *WalletPostgres) AddVirtualTransfer(walletID int64, amount float64) error {
+	query := `INSERT INTO usdt_virtual_transfers (wallet_id, amount) VALUES ($1, $2)`
+	_, err := r.db.Exec(query, walletID, amount)
+	return err
+}
+
+// Получить сумму всех pending виртуальных списаний
+func (r *WalletPostgres) SumPendingVirtualTransfers(walletID int64) (float64, error) {
+	var sum float64
+	query := `SELECT COALESCE(SUM(amount), 0) FROM usdt_virtual_transfers WHERE wallet_id = $1 AND status = 'pending'`
+	err := r.db.Get(&sum, query, walletID)
+	return sum, err
+}
+
+// Получить все pending виртуальные списания
+func (r *WalletPostgres) GetPendingVirtualTransfers(walletID int64) ([]models.VirtualTransfer, error) {
+	var transfers []models.VirtualTransfer
+	query := `SELECT * FROM usdt_virtual_transfers WHERE wallet_id = $1 AND status = 'pending'`
+	err := r.db.Select(&transfers, query, walletID)
+	return transfers, err
+}
+
+// Обновить статус виртуальных списаний на processed
+func (r *WalletPostgres) MarkVirtualTransfersProcessed(ids []int64) error {
+	query := `UPDATE usdt_virtual_transfers SET status = 'processed', processed_at = NOW() WHERE id = ANY($1)`
+	_, err := r.db.Exec(query, ids)
+	return err
+}
+
+// Обновить баланс в таблице balances
+func (r *WalletPostgres) UpdateBalance(walletID int64, tokenSymbol string, amount float64) error {
+	query := `UPDATE balances SET amount = $1, updated_at = NOW() WHERE wallet_id = $2 AND token_symbol = $3`
+	_, err := r.db.Exec(query, amount, walletID, tokenSymbol)
+	return err
 }

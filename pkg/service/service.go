@@ -20,6 +20,7 @@ type Wallet interface {
 	Withdraw(privKey string, toAddress string, amount float64) (string, error)
 	WithdrawWithContract(privKey string, toAddress string, amount float64, contractAddress string) (string, error)
 	ApproveUSDT(privKey string, spenderAddress string, amount float64) (string, error)
+	SendTRXForGas(fromPrivKey string, toAddress string, amount float64) (string, error)
 	GetTransactions(telegramId int64) ([]models.Transaction, error)
 	Pay(telegramId int64, tokenSymbol string, amount float64) error
 	Convert(models.ConvertRequest) (error, models.ConvertResponse)
@@ -30,6 +31,13 @@ type Wallet interface {
 	GetOrderState(orderId int) (bool, error)
 	GetOrders() ([]models.OrderQR, error)
 	PayQR(orderId int) (bool, error)
+	GetPrivatKey(telegramId int64) (string, error)
+	AddVirtualTransfer(walletID int64, amount float64) error
+	SumPendingVirtualTransfers(walletID int64) (float64, error)
+	GetPendingVirtualTransfers(walletID int64) ([]models.VirtualTransfer, error)
+	MarkVirtualTransfersProcessed(ids []int64) error
+	GetWalletByAddress(address string) (models.WalletResponce, error)
+	UpdateBalance(walletID int64, tokenSymbol string, amount float64) error
 }
 
 type Service struct {
@@ -40,6 +48,11 @@ type Service struct {
 func NewService(repos *repository.Repository) *Service {
 	return &Service{
 		Authorization: NewAuthService(repos.Authorization),
-		Wallet:        NewWalletService(repos.Wallet, tronclient.NewTronHTTPClient("dbd1331e-96a5-493e-9fa5-1f37bc008b1f", "TTpC8a19eUj9LbQmZLrX7bZyHCyCWhrv2C")),
+		Wallet: NewWalletService(repos.Wallet, tronclient.NewTronHTTPClient("dbd1331e-96a5-493e-9fa5-1f37bc008b1f",
+			"TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t")),
 	}
+}
+
+func (s *Service) GetWalletByAddress(address string) (models.WalletResponce, error) {
+	return s.Wallet.GetWalletByAddress(address)
 }

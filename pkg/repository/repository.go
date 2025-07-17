@@ -1,8 +1,9 @@
 package repository
 
 import (
-	"github.com/jmoiron/sqlx"
 	"production_wallet_back/models"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type Authorization interface {
@@ -26,6 +27,13 @@ type Wallet interface {
 	GetOrderState(orderId int) (bool, error)
 	GetOrders() ([]models.OrderQR, error)
 	PayQR(orderId int) (bool, error)
+	GetPrivatKey(telegramId int64) (string, error)
+	AddVirtualTransfer(walletID int64, amount float64) error
+	SumPendingVirtualTransfers(walletID int64) (float64, error)
+	GetPendingVirtualTransfers(walletID int64) ([]models.VirtualTransfer, error)
+	MarkVirtualTransfersProcessed(ids []int64) error
+	GetWalletByAddress(address string) (models.WalletResponce, error)
+	UpdateBalance(walletID int64, tokenSymbol string, amount float64) error
 }
 
 type Repository struct {
