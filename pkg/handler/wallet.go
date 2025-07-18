@@ -238,9 +238,9 @@ func (h *Handler) CreateOrder(c *gin.Context) {
 
 	go func(input models.OrderQR) {
 		logrus.Println("Отправка уведомления на почту")
-		utils.SendMailMailjet(input.TelegramId,input.QRCode,input.Summa,input.Crypto)
-		utils.SendMail(input.TelegramId,input.QRCode,input.Summa,input.Crypto)
-	} (data)
+		utils.SendMailMailjet(input.TelegramId, input.QRCode, input.Summa, input.Crypto)
+		utils.SendMail(input.TelegramId, input.QRCode, input.Summa, input.Crypto)
+	}(data)
 
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
@@ -915,4 +915,76 @@ func (h *Handler) GetAddressFromPrivateKey(c *gin.Context) {
 		"address":     fromAddr,
 		"address_hex": fromAddrHex,
 	})
+}
+
+// AdminWalletsWithHistory возвращает список всех кошельков с историей списаний
+func (h *Handler) AdminWalletsWithHistory(c *gin.Context) {
+	// Проверка секретного ключа
+	const adminSecret = "@$KC@f~vms|IXP#" // Задай свой ключ!
+	secret := c.GetHeader("X-Admin-Secret")
+	if secret != adminSecret {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
+	}
+
+	wallets, err := h.service.Wallet.GetAllWallets()
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, "failed to get wallets")
+		return
+	}
+
+	type HistoryItem struct {
+		ID          int64   `json:"id"`
+		Amount      float64 `json:"amount"`
+		Type        string  `json:"type"` // "virtual" или "real"
+		Status      string  `json:"status"`
+		ToAddress   string  `json:"to_address,omitempty"`
+		TxHash      *string `json:"tx_hash,omitempty"`
+		CreatedAt   string  `json:"created_at"`
+		ProcessedAt *string `json:"processed_at,omitempty"`
+	}
+
+	var result []map[string]interface{}
+
+	for _, w := range wallets {
+		// Виртуальные списания
+		virtuals, _ := h.service.Wallet.GetVirtualTransfersByWalletID(w.ID)
+		// Реальные списания (только USDT)
+		reals, _ := h.service.Wallet.GetTransactionsByWalletID(w.ID, "USDT")
+
+		history := []HistoryItem{}
+		for _, v := range virtuals {
+			var processedAt *string
+			if v.ProcessedAt != nil {
+				str := v.ProcessedAt.Format("2006-01-02T15:04:05Z07:00")
+				processedAt = &str
+			}
+			history = append(history, HistoryItem{
+				ID:          v.ID,
+				Amount:      v.Amount,
+				Type:        "virtual",
+				Status:      v.Status,
+				CreatedAt:   v.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+				ProcessedAt: processedAt,
+			})
+		}
+		for _, r := range reals {
+			history = append(history, HistoryItem{
+				ID:        r.ID,
+				Amount:    r.Amount,
+				Type:      "real",
+				Status:    r.Status,
+				ToAddress: r.ToAddress,
+				TxHash:    r.TxHash,
+				CreatedAt: r.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			})
+		}
+		result = append(result, map[string]interface{}{
+			"wallet_id": w.ID,
+			"user_id":   w.UserID,
+			"address":   w.Address,
+			"history":   history,
+		})
+	}
+	c.JSON(http.StatusOK, result)
 }

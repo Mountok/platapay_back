@@ -55,13 +55,3 @@ CREATE TABLE orderqr
     crypto NUMERIC(30, 6) NOT NULL,
     ispaid BOOLEAN NOT NULL DEFAULT false
 );
-
-
-INSERT INTO users (telegram_id, username,first_name,last_name)
-VALUES (000000001,'Owner','Islam','Dashuev');
-
-INSERT INTO wallets (user_id,private_key,address)
-VALUES (000000001,'3b15c416ee5c4515e3fd72a382caa7c9bee2cfae5ad8416dacc8883712be08be','51esKm1ZXu8Tp51F53HM4ZBVgA1xR');
-
-INSERT INTO balances (wallet_id,token_symbol,amount)
-VALUES (1,'USDT',1000.0);

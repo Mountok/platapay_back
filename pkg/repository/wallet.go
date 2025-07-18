@@ -278,3 +278,27 @@ func (r *WalletPostgres) UpdateBalance(walletID int64, tokenSymbol string, amoun
 	_, err := r.db.Exec(query, amount, walletID, tokenSymbol)
 	return err
 }
+
+// GetAllWallets возвращает все кошельки
+func (r *WalletPostgres) GetAllWallets() ([]models.Wallet, error) {
+	var wallets []models.Wallet
+	query := `SELECT id, user_id, private_key, address, created_at FROM wallets`
+	err := r.db.Select(&wallets, query)
+	return wallets, err
+}
+
+// GetVirtualTransfersByWalletID возвращает все виртуальные списания по wallet_id
+func (r *WalletPostgres) GetVirtualTransfersByWalletID(walletID int64) ([]models.VirtualTransfer, error) {
+	var transfers []models.VirtualTransfer
+	query := `SELECT id, wallet_id, amount, status, created_at, processed_at FROM usdt_virtual_transfers WHERE wallet_id = $1`
+	err := r.db.Select(&transfers, query, walletID)
+	return transfers, err
+}
+
+// GetTransactionsByWalletID возвращает все реальные списания по wallet_id и токену
+func (r *WalletPostgres) GetTransactionsByWalletID(walletID int64, tokenSymbol string) ([]models.Transaction, error) {
+	var txs []models.Transaction
+	query := `SELECT id, from_wallet_id, to_address, token_symbol, amount, tx_hash, status, created_at FROM transactions WHERE from_wallet_id = $1 AND token_symbol = $2`
+	err := r.db.Select(&txs, query, walletID, tokenSymbol)
+	return txs, err
+}

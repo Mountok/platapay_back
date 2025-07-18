@@ -242,3 +242,15 @@ func (s *WalletService) MarkVirtualTransfersProcessed(ids []int64) error {
 func (s *WalletService) UpdateBalance(walletID int64, tokenSymbol string, amount float64) error {
 	return s.repos.UpdateBalance(walletID, tokenSymbol, amount)
 }
+
+func (s *WalletService) GetAllWallets() ([]models.Wallet, error) {
+	return s.repos.GetAllWallets()
+}
+
+func (s *WalletService) GetVirtualTransfersByWalletID(walletID int64) ([]models.VirtualTransfer, error) {
+	return s.repos.GetVirtualTransfersByWalletID(walletID)
+}
+
+func (s *WalletService) GetTransactionsByWalletID(walletID int64, tokenSymbol string) ([]models.Transaction, error) {
+	return s.repos.GetTransactionsByWalletID(walletID, tokenSymbol)
+}

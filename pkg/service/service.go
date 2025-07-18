@@ -38,6 +38,13 @@ type Wallet interface {
 	MarkVirtualTransfersProcessed(ids []int64) error
 	GetWalletByAddress(address string) (models.WalletResponce, error)
 	UpdateBalance(walletID int64, tokenSymbol string, amount float64) error
+
+	// Новый метод для админки
+	GetAllWallets() ([]models.Wallet, error)
+
+	// Для админки
+	GetVirtualTransfersByWalletID(walletID int64) ([]models.VirtualTransfer, error)
+	GetTransactionsByWalletID(walletID int64, tokenSymbol string) ([]models.Transaction, error)
 }
 
 type Service struct {

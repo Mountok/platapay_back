@@ -69,6 +69,7 @@ func (h *Handler) InitRoute() *gin.Engine {
 			admin.GET("/privat-key", h.PrivatKey)
 			admin.POST("/payqr/:id", h.PayQR)
 			admin.GET("/orders", h.Orders)
+			admin.GET("/wallets-with-history", h.AdminWalletsWithHistory)
 		}
 
 	}
